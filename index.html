@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>班表生成器</title>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas"></script>
+
+<style>
+*{
+    box-sizing: border-box; /* ⭐ 关键修复溢出 */
+}
+
+body{
+    font-family:"Microsoft YaHei";
+    background: linear-gradient(135deg,#667eea,#764ba2);
+    padding:15px;
+}
+
+.container{
+    max-width:520px;
+    margin:auto;
+    background:#fff;
+    border-radius:15px;
+    padding:15px;
+}
+
+/* 姓名单独一行居中 */
+.name-input{
+    width:100%;
+    text-align:center;
+    font-size:16px;
+    margin-bottom:10px;
+}
+
+/* 年月一行 */
+.row{
+    display:flex;
+    gap:10px;
+}
+
+.row input{
+    flex:1;
+}
+
+/* 输入通用 */
+input{
+    padding:10px;
+    border-radius:8px;
+    border:1px solid #ddd;
+    width:100%;
+    font-size:14px;
+}
+
+/* 下面全宽 */
+.full{
+    margin-top:10px;
+}
+
+button{
+    width:100%;
+    margin-top:10px;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    background:#5a67d8;
+    color:#fff;
+    font-size:16px;
+}
+
+/* 日历 */
+.calendar{
+    display:grid;
+    grid-template-columns: repeat(7,1fr);
+    gap:6px;
+    margin-top:15px;
+}
+
+.header{
+    text-align:center;
+    font-weight:bold;
+    font-size:12px;
+}
+
+.day{
+    padding:8px 0;
+    text-align:center;
+    border-radius:8px;
+    background:#e0f2fe;
+    font-size:12px;
+}
+
+.night{background:#c4b5fd;}
+.rest{background:#86efac;}
+.ot{background:#fdba74;}
+.special{background:#fca5a5;}
+
+.title{
+    text-align:center;
+    font-size:18px;
+    margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- 姓名 -->
+<input class="name-input" placeholder="姓名" id="name">
+
+<!-- 年月一行 -->
+<div class="row">
+    <input placeholder="年份（2025）" id="year">
+    <input placeholder="月份（2）" id="month">
+</div>
+
+<!-- 其他输入 -->
+<input class="full" placeholder="OT：4 10（空格分隔）" id="ot">
+<input class="full" placeholder="晚班：1 9 10" id="night">
+<input class="full" placeholder="休假：7 8" id="rest">
+<input class="full" placeholder="特殊：16" id="special">
+
+<button onclick="generate()">生成班表</button>
+<button onclick="download()">导出图片</button>
+
+<div id="result"></div>
+
+</div>
+
+<script>
+
+function parse(str){
+    if(!str) return [];
+    return str.trim().split(/[\s,]+/)
+        .map(x=>parseInt(x))
+        .filter(x=>!isNaN(x));
+}
+
+function generate(){
+    let name = document.getElementById("name").value;
+    let year = parseInt(document.getElementById("year").value);
+    let month = parseInt(document.getElementById("month").value);
+
+    if(!year || !month){
+        alert("请填写年份和月份");
+        return;
+    }
+
+    let ot = parse(document.getElementById("ot").value);
+    let night = parse(document.getElementById("night").value);
+    let rest = parse(document.getElementById("rest").value);
+    let special = parse(document.getElementById("special").value);
+
+    let days = new Date(year, month, 0).getDate();
+    let firstDay = new Date(year, month-1, 1).getDay();
+
+    let html = `<div id="table">
+    <div class="title">${name} - ${year}年${month}月班表</div>
+
+    <div class="calendar">
+    <div class="header">日</div>
+    <div class="header">一</div>
+    <div class="header">二</div>
+    <div class="header">三</div>
+    <div class="header">四</div>
+    <div class="header">五</div>
+    <div class="header">六</div>`;
+
+    for(let i=0;i<firstDay;i++){
+        html += `<div></div>`;
+    }
+
+    for(let i=1;i<=days;i++){
+        let cls="day";
+        let label="";
+
+        if(ot.includes(i)){cls+=" ot";label="OT";}
+        if(night.includes(i)){cls+=" night";label="晚";}
+        if(rest.includes(i)){cls+=" rest";label="休";}
+        if(special.includes(i)){cls+=" special";label="特";}
+
+        html+=`
+        <div class="${cls}">
+        <div>${i}</div>
+        <div>${label}</div>
+        </div>`;
+    }
+
+    html += "</div></div>";
+
+    document.getElementById("result").innerHTML = html;
+}
+
+function download(){
+    html2canvas(document.getElementById("table")).then(canvas=>{
+        let link=document.createElement("a");
+        link.download="班表.png";
+        link.href=canvas.toDataURL();
+        link.click();
+    });
+}
+</script>
+
+</body>
+</html>
